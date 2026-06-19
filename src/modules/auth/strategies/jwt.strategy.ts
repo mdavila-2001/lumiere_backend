@@ -25,5 +25,5 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: payload.email,
       role: payload.role,
     };
-  }
+  } // Volver asíncrona esta función una vez se integre con lo tuyo Serres
 }
