@@ -1,26 +1,42 @@
-import { Injectable } from '@nestjs/common';
-import { CreateRoomDto } from './dto/create-room.dto';
-import { UpdateRoomDto } from './dto/update-room.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Room } from './entities/room.entity.js';
+import { CreateRoomDto } from './dto/create-room.dto.js';
+import { UpdateRoomDto } from './dto/update-room.dto.js';
 
 @Injectable()
 export class RoomsService {
-  create(createRoomDto: CreateRoomDto) {
-    return 'This action adds a new room';
+  constructor(
+    @InjectRepository(Room)
+    private readonly roomRepository: Repository<Room>,
+  ) {}
+
+  async create(createRoomDto: CreateRoomDto): Promise<Room> {
+    const room = this.roomRepository.create(createRoomDto);
+    return this.roomRepository.save(room);
   }
 
-  findAll() {
-    return `This action returns all rooms`;
+  async findAll(): Promise<Room[]> {
+    return this.roomRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} room`;
+  async findOne(id: string): Promise<Room> {
+    const room = await this.roomRepository.findOneBy({ id });
+    if (!room) {
+      throw new NotFoundException('Room not found');
+    }
+    return room;
   }
 
-  update(id: number, updateRoomDto: UpdateRoomDto) {
-    return `This action updates a #${id} room`;
+  async update(id: string, updateRoomDto: UpdateRoomDto): Promise<Room> {
+    const room = await this.findOne(id);
+    this.roomRepository.merge(room, updateRoomDto);
+    return this.roomRepository.save(room);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} room`;
+  async remove(id: string): Promise<void> {
+    const room = await this.findOne(id);
+    await this.roomRepository.remove(room);
   }
 }
