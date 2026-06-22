@@ -31,10 +31,8 @@ export class BookingsService {
     const { showtimeId, seats } = createBookingDto;
 
     const dbSeatsPayload = seats.map((s) => ({
-      rowNumber: s.rowNumber,
-      columnNumber: s.columnNumber,
-      row_number: s.rowNumber,
-      column_number: s.columnNumber,
+      row: s.rowNumber,
+      col: s.columnNumber,
     }));
 
     try {
