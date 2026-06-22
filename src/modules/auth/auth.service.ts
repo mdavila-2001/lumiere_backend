@@ -1,38 +1,67 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
-import { EntityManager } from 'typeorm';
-import { UsersService } from '../users/users.service.js';
-import { LoginDto } from './dto/login.dto/login.dto.js';
-import { UserRole } from '../users/entities/user.entity.js';
+import { RegisterDto } from './dto/register.dto.js';
+import { LoginDto } from './dto/login.dto.js';
 
-interface AuthenticatedUserRow {
+interface PostgresError extends Error {
+  code?: string;
+}
+
+interface AuthenticatedUser {
   id: string;
   email: string;
-  role: UserRole;
+  role: string;
 }
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly entityManager: EntityManager,
+    @InjectDataSource() private readonly dataSource: DataSource,
     private readonly jwtService: JwtService,
-    private readonly usersService: UsersService,
   ) {}
 
-  async login(loginDto: LoginDto): Promise<{ accessToken: string }> {
-    const result = (await this.entityManager.query(
-      'SELECT * FROM fn_authenticate_user($1, $2)',
-      [loginDto.email, loginDto.password],
-    )) as unknown as AuthenticatedUserRow[];
+  async register(registerDto: RegisterDto): Promise<void> {
+    const { email, password } = registerDto;
+    try {
+      await this.dataSource.query('CALL pr_register_user($1, $2, $3)', [
+        email,
+        password,
+        'CUSTOMER',
+      ]);
+    } catch (error: unknown) {
+      if (error instanceof Error && (error as PostgresError).code === '23505') {
+        throw new ConflictException('Email already exists');
+      }
+      throw error;
+    }
+  }
 
-    if (!result || result.length === 0 || !result[0]) {
+  async login(loginDto: LoginDto): Promise<{ accessToken: string }> {
+    const { email, password } = loginDto;
+
+    const result: AuthenticatedUser[] = await this.dataSource.query(
+      'SELECT * FROM fn_authenticate_user($1, $2)',
+      [email, password],
+    );
+
+    if (!result || result.length === 0) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const user = result[0];
-    const payload = { email: user.email, role: user.role, sub: user.id };
-    const accessToken = this.jwtService.sign(payload);
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
 
+    const accessToken = this.jwtService.sign(payload);
     return { accessToken };
   }
 }
