@@ -21,6 +21,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { MoviesService } from './movies.service.js';
 import { CreateMovieDto } from './dto/create-movie.dto.js';
 import { UpdateMovieDto } from './dto/update-movie.dto.js';
+import { Movie } from './entities/movie.entity.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
@@ -57,7 +58,7 @@ export const multerOptions = {
     }
   },
   limits: {
-    fileSize: 2 * 1024 * 1024, // 2MB
+    fileSize: 2 * 1024 * 1024,
   },
 };
 
@@ -72,27 +73,30 @@ export class MoviesController {
   async create(
     @Body() createMovieDto: CreateMovieDto,
     @UploadedFile() file: Express.Multer.File,
-  ) {
+  ): Promise<Movie> {
     if (!file) {
       throw new BadRequestException('Poster image is required');
     }
     const posterUrl = `/uploads/movies/${file.filename}`;
-    return this.moviesService.create(createMovieDto, posterUrl);
+    return await this.moviesService.create(createMovieDto, posterUrl);
   }
 
   @Get()
-  async findAll() {
-    return this.moviesService.findAll();
+  async findAll(): Promise<Movie[]> {
+    return await this.moviesService.findAll();
   }
 
   @Get('search')
-  async search(@Query('title') title?: string, @Query('genre') genre?: string) {
-    return this.moviesService.search(title, genre);
+  async search(
+    @Query('title') title?: string,
+    @Query('genre') genre?: string,
+  ): Promise<Movie[]> {
+    return await this.moviesService.search(title, genre);
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.moviesService.findOne(id);
+  async findOne(@Param('id') id: string): Promise<Movie> {
+    return await this.moviesService.findOne(id);
   }
 
   @Patch(':id')
@@ -103,16 +107,16 @@ export class MoviesController {
     @Param('id') id: string,
     @Body() updateMovieDto: UpdateMovieDto,
     @UploadedFile() file?: Express.Multer.File,
-  ) {
+  ): Promise<Movie> {
     const posterUrl = file ? `/uploads/movies/${file.filename}` : undefined;
-    return this.moviesService.update(id, updateMovieDto, posterUrl);
+    return await this.moviesService.update(id, updateMovieDto, posterUrl);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string) {
-    return this.moviesService.remove(id);
+  async remove(@Param('id') id: string): Promise<void> {
+    return await this.moviesService.remove(id);
   }
 }

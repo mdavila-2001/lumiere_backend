@@ -35,8 +35,14 @@ export class AuthService {
         'CUSTOMER',
       ]);
     } catch (error: unknown) {
-      if (error instanceof Error && (error as PostgresError).code === '23505') {
-        throw new ConflictException('Email already exists');
+      if (error instanceof Error) {
+        const pgErr = error as PostgresError;
+        if (
+          pgErr.code === '23505' ||
+          pgErr.message.includes('Conflict: An account with email')
+        ) {
+          throw new ConflictException('Email already exists');
+        }
       }
       throw error;
     }
