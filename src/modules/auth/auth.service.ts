@@ -27,12 +27,12 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto): Promise<void> {
-    const { email, password } = registerDto;
+    const { email, password, role } = registerDto;
     try {
       await this.dataSource.query('CALL pr_register_user($1, $2, $3)', [
         email,
         password,
-        'CUSTOMER',
+        role ?? 'CUSTOMER',
       ]);
     } catch (error: unknown) {
       if (error instanceof Error) {
