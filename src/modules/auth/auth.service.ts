@@ -27,16 +27,22 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto): Promise<void> {
-    const { email, password } = registerDto;
+    const { email, password, role } = registerDto;
     try {
       await this.dataSource.query('CALL pr_register_user($1, $2, $3)', [
         email,
         password,
-        'CUSTOMER',
+        role ?? 'CUSTOMER',
       ]);
     } catch (error: unknown) {
-      if (error instanceof Error && (error as PostgresError).code === '23505') {
-        throw new ConflictException('Email already exists');
+      if (error instanceof Error) {
+        const pgErr = error as PostgresError;
+        if (
+          pgErr.code === '23505' ||
+          pgErr.message.includes('Conflict: An account with email')
+        ) {
+          throw new ConflictException('Email already exists');
+        }
       }
       throw error;
     }

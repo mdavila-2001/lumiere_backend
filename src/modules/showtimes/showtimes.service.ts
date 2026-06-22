@@ -1,9 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Showtime } from './entities/showtime.entity.js';
 import { CreateShowtimeDto } from './dto/create-showtime.dto.js';
 import { UpdateShowtimeDto } from './dto/update-showtime.dto.js';
+
+interface DatabaseError extends Error {
+  code?: string;
+}
 
 @Injectable()
 export class ShowtimesService {
@@ -13,8 +22,25 @@ export class ShowtimesService {
   ) {}
 
   async create(createShowtimeDto: CreateShowtimeDto): Promise<Showtime> {
-    const showtime = this.showtimeRepository.create(createShowtimeDto);
-    return this.showtimeRepository.save(showtime);
+    try {
+      const showtime = this.showtimeRepository.create(createShowtimeDto);
+      return await this.showtimeRepository.save(showtime);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        const dbErr = error as DatabaseError;
+        if (
+          dbErr.message.includes(
+            'Conflict: The selected room is already occupied',
+          )
+        ) {
+          throw new ConflictException(dbErr.message);
+        }
+        if (dbErr.message.includes('Validation Error: The specified movie')) {
+          throw new BadRequestException(dbErr.message);
+        }
+      }
+      throw error;
+    }
   }
 
   async findAll(): Promise<Showtime[]> {
@@ -64,7 +90,24 @@ export class ShowtimesService {
   ): Promise<Showtime> {
     const showtime = await this.findOne(id);
     this.showtimeRepository.merge(showtime, updateShowtimeDto);
-    return this.showtimeRepository.save(showtime);
+    try {
+      return await this.showtimeRepository.save(showtime);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        const dbErr = error as DatabaseError;
+        if (
+          dbErr.message.includes(
+            'Conflict: The selected room is already occupied',
+          )
+        ) {
+          throw new ConflictException(dbErr.message);
+        }
+        if (dbErr.message.includes('Validation Error: The specified movie')) {
+          throw new BadRequestException(dbErr.message);
+        }
+      }
+      throw error;
+    }
   }
 
   async remove(id: string): Promise<void> {

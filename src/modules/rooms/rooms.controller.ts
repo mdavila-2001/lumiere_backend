@@ -13,6 +13,7 @@ import {
 import { RoomsService } from './rooms.service.js';
 import { CreateRoomDto } from './dto/create-room.dto.js';
 import { UpdateRoomDto } from './dto/update-room.dto.js';
+import { Room } from './entities/room.entity.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
@@ -25,32 +26,35 @@ export class RoomsController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  async create(@Body() createRoomDto: CreateRoomDto) {
-    return this.roomsService.create(createRoomDto);
+  async create(@Body() createRoomDto: CreateRoomDto): Promise<Room> {
+    return await this.roomsService.create(createRoomDto);
   }
 
   @Get()
-  async findAll() {
-    return this.roomsService.findAll();
+  async findAll(): Promise<Room[]> {
+    return await this.roomsService.findAll();
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.roomsService.findOne(id);
+  async findOne(@Param('id') id: string): Promise<Room> {
+    return await this.roomsService.findOne(id);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  async update(@Param('id') id: string, @Body() updateRoomDto: UpdateRoomDto) {
-    return this.roomsService.update(id, updateRoomDto);
+  async update(
+    @Param('id') id: string,
+    @Body() updateRoomDto: UpdateRoomDto,
+  ): Promise<Room> {
+    return await this.roomsService.update(id, updateRoomDto);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string) {
-    return this.roomsService.remove(id);
+  async remove(@Param('id') id: string): Promise<void> {
+    return await this.roomsService.remove(id);
   }
 }
