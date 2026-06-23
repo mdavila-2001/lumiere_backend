@@ -50,6 +50,42 @@ export class RoomsController {
     return await this.roomsService.update(id, updateRoomDto);
   }
 
+  @Get(':id/seats')
+  async findSeats(@Param('id') id: string) {
+    return await this.roomsService.findSeats(id);
+  }
+
+  @Delete(':id/seats/:row/:col')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeSeat(
+    @Param('id') id: string,
+    @Param('row') row: string,
+    @Param('col') col: string,
+  ): Promise<void> {
+    return await this.roomsService.removeSeat(
+      id,
+      Number.parseInt(row, 10),
+      Number.parseInt(col, 10),
+    );
+  }
+
+  @Post(':id/seats/:row/:col')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async addSeat(
+    @Param('id') id: string,
+    @Param('row') row: string,
+    @Param('col') col: string,
+  ) {
+    return await this.roomsService.addSeat(
+      id,
+      Number.parseInt(row, 10),
+      Number.parseInt(col, 10),
+    );
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)

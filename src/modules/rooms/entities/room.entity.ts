@@ -6,6 +6,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { Showtime } from '../../showtimes/entities/showtime.entity.js';
+import { Seat } from './seat.entity.js';
 
 @Entity({ name: 'rooms' })
 export class Room {
@@ -29,4 +30,7 @@ export class Room {
 
   @OneToMany(() => Showtime, (showtime) => showtime.room)
   showtimes: Showtime[];
+
+  @OneToMany(() => Seat, (seat) => seat.room, { cascade: true })
+  seats: Seat[];
 }

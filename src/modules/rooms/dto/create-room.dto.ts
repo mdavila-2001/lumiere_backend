@@ -2,19 +2,19 @@ import { IsInt, IsNotEmpty, IsPositive, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateRoomDto {
-  @IsString({ message: 'Name must be a string' })
-  @IsNotEmpty({ message: 'Name is required' })
+  @IsString({ message: 'El nombre debe ser una cadena de texto' })
+  @IsNotEmpty({ message: 'El nombre es obligatorio' })
   name: string;
 
   @Type(() => Number)
-  @IsInt({ message: 'rowsCount must be an integer' })
-  @IsPositive({ message: 'rowsCount must be a positive number' })
-  @IsNotEmpty({ message: 'rowsCount is required' })
+  @IsInt({ message: 'El número de filas debe ser un entero' })
+  @IsPositive({ message: 'El número de filas debe ser positivo' })
+  @IsNotEmpty({ message: 'El número de filas es obligatorio' })
   rowsCount: number;
 
   @Type(() => Number)
-  @IsInt({ message: 'columnsCount must be an integer' })
-  @IsPositive({ message: 'columnsCount must be a positive number' })
-  @IsNotEmpty({ message: 'columnsCount is required' })
+  @IsInt({ message: 'El número de columnas debe ser un entero' })
+  @IsPositive({ message: 'El número de columnas debe ser positivo' })
+  @IsNotEmpty({ message: 'El número de columnas es obligatorio' })
   columnsCount: number;
 }
