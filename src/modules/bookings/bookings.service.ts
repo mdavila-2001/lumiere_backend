@@ -72,4 +72,15 @@ export class BookingsService {
       },
     });
   }
+
+  async findAll(): Promise<Booking[]> {
+    return this.bookingRepository.find({
+      relations: {
+        showtime: {
+          movie: true,
+        },
+        reservedSeats: true,
+      },
+    });
+  }
 }
