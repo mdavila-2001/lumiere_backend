@@ -18,4 +18,10 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto): Promise<{ accessToken: string }> {
     return await this.authService.login(loginDto);
   }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(): Promise<{ message: string }> {
+    return { message: 'Sesión cerrada exitosamente' };
+  }
 }
