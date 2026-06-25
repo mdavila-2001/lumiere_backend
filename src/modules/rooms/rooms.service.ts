@@ -39,11 +39,17 @@ export class RoomsService {
   }
 
   async findAll(): Promise<Room[]> {
-    return this.roomRepository.find();
+    return this.roomRepository.find({
+      relations: { seats: true },
+      order: { createdAt: 'ASC' },
+    });
   }
 
   async findOne(id: string): Promise<Room> {
-    const room = await this.roomRepository.findOneBy({ id });
+    const room = await this.roomRepository.findOne({
+      where: { id },
+      relations: { seats: true },
+    });
     if (!room) {
       throw new NotFoundException('Room not found');
     }
