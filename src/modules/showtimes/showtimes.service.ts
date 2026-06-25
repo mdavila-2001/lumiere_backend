@@ -43,16 +43,21 @@ export class ShowtimesService {
     }
   }
 
-  async findAll(search?: string): Promise<Showtime[]> {
+  async findAll(search?: string, movieId?: string): Promise<Showtime[]> {
     const query = this.showtimeRepository
       .createQueryBuilder('showtime')
       .leftJoinAndSelect('showtime.movie', 'movie')
       .leftJoinAndSelect('showtime.room', 'room')
-      .leftJoinAndSelect('room.seats', 'seats');
+      .leftJoinAndSelect('room.seats', 'seats')
+      .orderBy('showtime.startTime', 'ASC');
 
     const trimmed = search?.trim();
     if (trimmed) {
-      query.where('movie.title ILIKE :search', { search: `%${trimmed}%` });
+      query.andWhere('movie.title ILIKE :search', { search: `%${trimmed}%` });
+    }
+
+    if (movieId) {
+      query.andWhere('showtime.movieId = :movieId', { movieId });
     }
 
     return query.getMany();
