@@ -27,7 +27,7 @@ export class UsersService implements OnApplicationBootstrap {
 
   async seedAdminUser(): Promise<void> {
     const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@lumiere.com';
-    const adminPassword = process.env.ADMIN_PASSWORD ?? 'AdminPassword123!';
+    const adminPassword = process.env.ADMIN_PASSWORD ?? '12345678';
 
     try {
       const existingAdmin = await this.userRepository.findOneBy({

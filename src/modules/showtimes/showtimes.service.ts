@@ -43,13 +43,19 @@ export class ShowtimesService {
     }
   }
 
-  async findAll(): Promise<Showtime[]> {
-    return this.showtimeRepository.find({
-      relations: {
-        movie: true,
-        room: true,
-      },
-    });
+  async findAll(search?: string): Promise<Showtime[]> {
+    const query = this.showtimeRepository
+      .createQueryBuilder('showtime')
+      .leftJoinAndSelect('showtime.movie', 'movie')
+      .leftJoinAndSelect('showtime.room', 'room')
+      .leftJoinAndSelect('room.seats', 'seats');
+
+    const trimmed = search?.trim();
+    if (trimmed) {
+      query.where('movie.title ILIKE :search', { search: `%${trimmed}%` });
+    }
+
+    return query.getMany();
   }
 
   async findOne(id: string): Promise<Showtime> {
@@ -57,7 +63,7 @@ export class ShowtimesService {
       where: { id },
       relations: {
         movie: true,
-        room: true,
+        room: { seats: true },
       },
     });
     if (!showtime) {

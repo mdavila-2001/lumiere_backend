@@ -5,6 +5,8 @@ import { CreateBookingDto } from './dto/create-booking.dto.js';
 import { Booking } from './entities/booking.entity.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
+import { Roles } from '../auth/decorators/roles.decorator.js';
+import { UserRole } from '../users/entities/user.entity.js';
 
 interface RequestWithUser extends Request {
   user?: {
@@ -32,5 +34,11 @@ export class BookingsController {
   async findMyBookings(@Req() req: RequestWithUser): Promise<Booking[]> {
     const userId = req.user?.id;
     return await this.bookingsService.findMyBookings(userId!);
+  }
+
+  @Get()
+  @Roles(UserRole.ADMIN)
+  async findAll(): Promise<Booking[]> {
+    return await this.bookingsService.findAll();
   }
 }

@@ -1,4 +1,4 @@
-import { IsISO8601, IsNotEmpty, IsPositive, IsUUID } from 'class-validator';
+import { IsDate, IsNotEmpty, IsPositive, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateShowtimeDto {
@@ -11,7 +11,7 @@ export class CreateShowtimeDto {
   roomId: string;
 
   @Type(() => Date)
-  @IsISO8601({}, { message: 'startTime must be a valid ISO 8601 date string' })
+  @IsDate({ message: 'startTime must be a valid ISO 8601 date string' })
   @IsNotEmpty({ message: 'startTime is required' })
   startTime: Date;
 
