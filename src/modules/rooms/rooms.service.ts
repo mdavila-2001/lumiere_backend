@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { Room } from './entities/room.entity.js';
 import { Seat } from './entities/seat.entity.js';
 import { CreateRoomDto } from './dto/create-room.dto.js';
@@ -38,8 +38,10 @@ export class RoomsService {
     return savedRoom;
   }
 
-  async findAll(): Promise<Room[]> {
+  async findAll(search?: string): Promise<Room[]> {
+    const trimmed = search?.trim();
     return this.roomRepository.find({
+      where: trimmed ? { name: ILike(`%${trimmed}%`) } : undefined,
       relations: { seats: true },
       order: { createdAt: 'ASC' },
     });

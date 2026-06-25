@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Query,
   Delete,
   UseGuards,
   HttpCode,
@@ -31,8 +32,8 @@ export class RoomsController {
   }
 
   @Get()
-  async findAll(): Promise<Room[]> {
-    return await this.roomsService.findAll();
+  async findAll(@Query('search') search?: string): Promise<Room[]> {
+    return await this.roomsService.findAll(search);
   }
 
   @Get(':id')
