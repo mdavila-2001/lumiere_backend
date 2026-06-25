@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Query,
   Delete,
   UseGuards,
   HttpCode,
@@ -33,8 +34,8 @@ export class ShowtimesController {
   }
 
   @Get()
-  async findAll(): Promise<Showtime[]> {
-    return await this.showtimesService.findAll();
+  async findAll(@Query('search') search?: string): Promise<Showtime[]> {
+    return await this.showtimesService.findAll(search);
   }
 
   @Get(':id/seats')
