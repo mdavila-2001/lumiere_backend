@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { UsersService } from '../../users/users.service.js';
+import { User } from '../../users/entities/user.entity.js';
 
 export interface JwtPayload {
   sub: string;
@@ -11,19 +13,24 @@ export interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    private readonly usersService: UsersService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') ?? 'fallback_secret',
+      secretOrKey: configService.get<string>('JWT_SECRET') ?? 'default_secret',
     });
   }
 
-  validate(payload: JwtPayload): { id: string; email: string; role: string } {
-    return {
-      id: payload.sub,
-      email: payload.email,
-      role: payload.role,
-    };
-  } // Volver asíncrona esta función una vez se integre con lo tuyo Serres
+  async validate(payload: JwtPayload): Promise<User> {
+    const user = await this.usersService.findById(payload.sub);
+    if (!user) {
+      throw new UnauthorizedException(
+        'User session is invalid or user no longer exists',
+      );
+    }
+    return user;
+  }
 }

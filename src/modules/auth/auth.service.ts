@@ -1,26 +1,73 @@
-import { Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
+import { RegisterDto } from './dto/register.dto.js';
+import { LoginDto } from './dto/login.dto.js';
+
+interface PostgresError extends Error {
+  code?: string;
+}
+
+interface AuthenticatedUser {
+  id: string;
+  email: string;
+  role: string;
+}
 
 @Injectable()
 export class AuthService {
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  async register(registerDto: RegisterDto): Promise<void> {
+    const { email, password, role } = registerDto;
+    try {
+      await this.dataSource.query('CALL pr_register_user($1, $2, $3)', [
+        email,
+        password,
+        role ?? 'CUSTOMER',
+      ]);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        const pgErr = error as PostgresError;
+        if (
+          pgErr.code === '23505' ||
+          pgErr.message.includes('Conflict: An account with email')
+        ) {
+          throw new ConflictException('Email already exists');
+        }
+      }
+      throw error;
+    }
   }
 
-  findAll() {
-    return `This action returns all auth`;
-  }
+  async login(loginDto: LoginDto): Promise<{ accessToken: string }> {
+    const { email, password } = loginDto;
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
+    const result: AuthenticatedUser[] = await this.dataSource.query(
+      'SELECT * FROM fn_authenticate_user($1, $2)',
+      [email, password],
+    );
 
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
+    if (!result || result.length === 0) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+    const user = result[0];
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+    return { accessToken };
   }
 }

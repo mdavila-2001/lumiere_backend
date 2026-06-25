@@ -1,26 +1,123 @@
-import { Injectable } from '@nestjs/common';
-import { CreateShowtimeDto } from './dto/create-showtime.dto';
-import { UpdateShowtimeDto } from './dto/update-showtime.dto';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Showtime } from './entities/showtime.entity.js';
+import { CreateShowtimeDto } from './dto/create-showtime.dto.js';
+import { UpdateShowtimeDto } from './dto/update-showtime.dto.js';
+
+interface DatabaseError extends Error {
+  code?: string;
+}
 
 @Injectable()
 export class ShowtimesService {
-  create(createShowtimeDto: CreateShowtimeDto) {
-    return 'This action adds a new showtime';
+  constructor(
+    @InjectRepository(Showtime)
+    private readonly showtimeRepository: Repository<Showtime>,
+  ) {}
+
+  async create(createShowtimeDto: CreateShowtimeDto): Promise<Showtime> {
+    try {
+      const showtime = this.showtimeRepository.create(createShowtimeDto);
+      return await this.showtimeRepository.save(showtime);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        const dbErr = error as DatabaseError;
+        if (
+          dbErr.message.includes(
+            'Conflict: The selected room is already occupied',
+          )
+        ) {
+          throw new ConflictException(dbErr.message);
+        }
+        if (dbErr.message.includes('Validation Error: The specified movie')) {
+          throw new BadRequestException(dbErr.message);
+        }
+      }
+      throw error;
+    }
   }
 
-  findAll() {
-    return `This action returns all showtimes`;
+  async findAll(search?: string): Promise<Showtime[]> {
+    const query = this.showtimeRepository
+      .createQueryBuilder('showtime')
+      .leftJoinAndSelect('showtime.movie', 'movie')
+      .leftJoinAndSelect('showtime.room', 'room')
+      .leftJoinAndSelect('room.seats', 'seats');
+
+    const trimmed = search?.trim();
+    if (trimmed) {
+      query.where('movie.title ILIKE :search', { search: `%${trimmed}%` });
+    }
+
+    return query.getMany();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} showtime`;
+  async findOne(id: string): Promise<Showtime> {
+    const showtime = await this.showtimeRepository.findOne({
+      where: { id },
+      relations: {
+        movie: true,
+        room: { seats: true },
+      },
+    });
+    if (!showtime) {
+      throw new NotFoundException('Showtime not found');
+    }
+    return showtime;
   }
 
-  update(id: number, updateShowtimeDto: UpdateShowtimeDto) {
-    return `This action updates a #${id} showtime`;
+  async getOccupiedSeats(
+    showtimeId: string,
+  ): Promise<{ rowNumber: number; columnNumber: number }[]> {
+    const showtime = await this.showtimeRepository.findOne({
+      where: { id: showtimeId },
+      relations: {
+        reservedSeats: true,
+      },
+    });
+    if (!showtime) {
+      throw new NotFoundException('Showtime not found');
+    }
+    return showtime.reservedSeats.map((seat) => ({
+      rowNumber: seat.rowNumber,
+      columnNumber: seat.columnNumber,
+    }));
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} showtime`;
+  async update(
+    id: string,
+    updateShowtimeDto: UpdateShowtimeDto,
+  ): Promise<Showtime> {
+    const showtime = await this.findOne(id);
+    this.showtimeRepository.merge(showtime, updateShowtimeDto);
+    try {
+      return await this.showtimeRepository.save(showtime);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        const dbErr = error as DatabaseError;
+        if (
+          dbErr.message.includes(
+            'Conflict: The selected room is already occupied',
+          )
+        ) {
+          throw new ConflictException(dbErr.message);
+        }
+        if (dbErr.message.includes('Validation Error: The specified movie')) {
+          throw new BadRequestException(dbErr.message);
+        }
+      }
+      throw error;
+    }
+  }
+
+  async remove(id: string): Promise<void> {
+    const showtime = await this.findOne(id);
+    await this.showtimeRepository.remove(showtime);
   }
 }

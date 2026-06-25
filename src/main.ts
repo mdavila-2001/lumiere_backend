@@ -1,11 +1,12 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { AppModule } from './app.module.js';
 import { ValidationPipe } from '@nestjs/common';
+import { DatabaseExceptionFilter } from './common/filters/database-exception.filter.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api');
   app.enableCors();
 
   app.useGlobalPipes(
@@ -16,7 +17,9 @@ async function bootstrap() {
     }),
   );
 
+  app.useGlobalFilters(new DatabaseExceptionFilter());
+
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
 }
-bootstrap();
+void bootstrap();
