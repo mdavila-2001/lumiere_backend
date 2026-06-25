@@ -34,8 +34,11 @@ export class ShowtimesController {
   }
 
   @Get()
-  async findAll(@Query('search') search?: string): Promise<Showtime[]> {
-    return await this.showtimesService.findAll(search);
+  async findAll(
+    @Query('search') search?: string,
+    @Query('movieId') movieId?: string,
+  ): Promise<Showtime[]> {
+    return await this.showtimesService.findAll(search, movieId);
   }
 
   @Get(':id/seats')
